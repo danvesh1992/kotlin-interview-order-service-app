@@ -19,12 +19,14 @@ import org.springframework.dao.EmptyResultDataAccessException
 import com.kotlin.cartcheckoutservice.app.model.UserOrderStatus
 import org.slf4j.LoggerFactory
 import org.hibernate.cache.spi.support.AbstractReadWriteAccess.Item
+import com.kotlin.cartcheckoutservice.app.kafka.producer.CartProducerNotifyService
 
 @Service
 class UserOrderService(
 	@Autowired private val promoService: PromoService,
 	@Autowired private val userOrderRepository: UserOrderRepository,
-	@Autowired private val productRepository: ProductRepository
+	@Autowired private val productRepository: ProductRepository,
+	@Autowired private val cartProducerNotifyService: CartProducerNotifyService
 ) {
 
 	companion object {
@@ -84,6 +86,12 @@ class UserOrderService(
 		userOrderRepository.save(userOrder)
 
 		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>> Order placed succesfully >>>>>>>>>>>>>>>>>>>>>>>> $userOrder")
+
+		try {
+			cartProducerNotifyService.sendOrderStatus(userOrder)
+		} catch (e: Exception) {
+			LOGGER.error(">>>>>>>>>>>>>>>>>>>>>>> Exception while notifying and here is the oder detail: $userOrder >>>>>>>>>>>>>>>>>>>>")
+		}
 		return userOrder
 	}
 
